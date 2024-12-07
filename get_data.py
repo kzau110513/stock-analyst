@@ -1,26 +1,54 @@
 import yfinance as yf
 
-# Fetch historical data for Apple (AAPL)
-ticker = yf.Ticker("AAPL")
-data = ticker.history(period="1mo", interval="1d")  # Last 1 month, daily intervals
-print(data.head())  # Check the data format
+# Define the ticker symbol
+ticker = "AAPL"
 
+# Get data for the ticker
+stock_data = yf.Ticker(ticker)
+
+# Fetch historical market data
+hist = stock_data.history(period="1mo")
+
+# Display the historical data
+print(hist)
 
 import matplotlib.pyplot as plt
 
-# Extract date and closing price
-data['Date'] = data.index  # Convert index to a column for easier access
-plt.figure(figsize=(10, 6))
-plt.plot(data['Date'], data['Close'], label="Closing Price", color="blue")
+# Calculate moving averages
+hist['MA20'] = hist['Close'].rolling(window=20).mean()
+hist['MA50'] = hist['Close'].rolling(window=50).mean()
 
-# Customize the chart
-plt.title("AAPL Stock Price (Last Month)", fontsize=16)
-plt.xlabel("Date", fontsize=12)
-plt.ylabel("Closing Price (USD)", fontsize=12)
+# Plot the data
+plt.figure(figsize=(10, 5))
+plt.plot(hist['Close'], label='Close Price')
+plt.plot(hist['MA20'], label='20-Day MA')
+plt.plot(hist['MA50'], label='50-Day MA')
 plt.legend()
-plt.grid()
-plt.xticks(rotation=45)
-plt.tight_layout()
+plt.show()
 
-# Show the plot
+import numpy as np
+
+def detect_inflection_points(hist):
+    # Calculate the first derivative of the closing prices
+    hist['First_Derivative'] = np.gradient(hist['Close'])
+    
+    # Calculate the second derivative of the closing prices
+    hist['Second_Derivative'] = np.gradient(hist['First_Derivative'])
+    
+    # Identify inflection points where the second derivative changes sign
+    inflection_points = hist[(hist['Second_Derivative'].shift(1) * hist['Second_Derivative'] < 0)]
+    
+    return inflection_points
+
+# Example usage
+inflection_points = detect_inflection_points(hist)
+print(inflection_points)
+
+# Plot the data with inflection points
+plt.figure(figsize=(10, 5))
+plt.plot(hist['Close'], label='Close Price')
+plt.plot(hist['MA20'], label='20-Day MA')
+plt.plot(hist['MA50'], label='50-Day MA')
+plt.scatter(inflection_points.index, inflection_points['Close'], color='red', label='Inflection Points')
+plt.legend()
 plt.show()
